@@ -25,20 +25,22 @@ var chunks = (arr, chunkSize) => {
 
 const CHAR_LENGTH = 7 // Character length in bits
 const WORD_LENGTH = 5 // Word length in characters
-
-// Number of characters to approximate for input filter and output pattern
-const PHRASE_LENGTH = WORD_LENGTH * 5
+const PHRASE_LENGTH = WORD_LENGTH * 5 // Number of characters for input filter
 
 // Network input/output length (number of bits, 7 per character)
 const NUM_INPUTS = PHRASE_LENGTH  * CHAR_LENGTH
-//const NUM_OUTPUTS = PHRASE_LENGTH * 7
 const NUM_OUTPUTS = CHAR_LENGTH // Save one character (7 bits) as output
 
 // Convert input charater to an array of 7 bits (as floats)
-var asNetIO = c => {
+var toBits = c => {
   return sprintf('%0' + CHAR_LENGTH + 's', c.charCodeAt(0).toString(2))
     .split("")
     .map(parseFloat)
+}
+
+var fromBits = bits => {
+  return String.fromCharCode(
+    parseInt(bits.map(b => { return "" + b }).join(""), 2))
 }
 
 var trainingSet = chars.map((c, i) => {
@@ -46,32 +48,42 @@ var trainingSet = chars.map((c, i) => {
   var output = _.flatten([chars[PHRASE_LENGTH + i]])
 
   return {
-    input: _.flatten(_.compact(input).map(asNetIO)),
-    output: _.flatten(_.compact(output).map(asNetIO))
+    input: _.flatten(_.compact(input).map(toBits)),
+    output: _.flatten(_.compact(output).map(toBits))
   }
 }).filter(obj => {
   return obj.output.length == NUM_OUTPUTS
 })
 
-//console.log(trainingSet.length)
-//console.log(JSON.stringify(trainingSet))
-//console.log("type of training set", trainingSet.chunks)
-//console.log(trainingSet.chunks(5))
-//console.log(chunks(trainingSet))
-//console.log(trainingSet[0].output)
-//console.log(chunks(trainingSet, 5).length)
-
 var net = new synaptic.Architect.LSTM(NUM_INPUTS, 4, NUM_OUTPUTS)
 var trainer = new synaptic.Trainer(net)
 
-chunks(trainingSet, 5).forEach(chunk => {
+var io_chunks = chunks(trainingSet, 5)
+
+io_chunks.forEach((chunk, i) => {
+  console.log(i + 1, "of", io_chunks.length)
+
   var result = trainer.train(chunk, {
     iterations: 100,
-    log: 1
+    log: 3
   })
+})
+
+tests = [
+  "The sea-reach of the Tham",
+  "an interminable waterway.",
+  "together without a joint,",
+  "of the barges drifting up",
+  "lusters of canvas sharply",
+  "haze rested on the low sh",
+  "The air was dark above Gr",
+  "condensed into a mournful",
+  "and the greatest, town on"
+].map(t => {
+  return _.flatten(t.split("").map(toBits))
+}).forEach(t => {
+  //console.log("T0", typeof t[0], t[0], JSON.stringify(t))
+  var result = net.activate(t)
 
   console.log(result)
 })
-
-// TODO: Activate
-net.activat
