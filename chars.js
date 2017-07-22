@@ -8,60 +8,70 @@ var sprintf = require("sprintf")
 var text = fs.readFileSync("./share/heart-of-darkness.short.txt").toString()
 var chars = text.split("")
 
-// Word length in chracters
-const WORD_LENGTH = 5
+var chunks = (arr, chunkSize) => {
+  //console.log("!!!", this)
+  var _chunks = []
+  var start = 0
+  var end = start + chunkSize
+
+  while(start < arr.length) {
+    _chunks.push(arr.slice(start, end))
+    start += chunkSize
+    end += chunkSize
+  }
+
+  return _chunks
+}
+
+const CHAR_LENGTH = 7 // Character length in bits
+const WORD_LENGTH = 5 // Word length in characters
+
 // Number of characters to approximate for input filter and output pattern
 const PHRASE_LENGTH = WORD_LENGTH * 5
-console.log(PHRASE_LENGTH)
 
 // Network input/output length (number of bits, 7 per character)
-const NUM_INPUTS = PHRASE_LENGTH  * 7
-const NUM_OUTPUTS = PHRASE_LENGTH * 7
-console.log(NUM_INPUTS, NUM_OUTPUTS)
+const NUM_INPUTS = PHRASE_LENGTH  * CHAR_LENGTH
+//const NUM_OUTPUTS = PHRASE_LENGTH * 7
+const NUM_OUTPUTS = CHAR_LENGTH // Save one character (7 bits) as output
 
 // Convert input charater to an array of 7 bits (as floats)
 var asNetIO = c => {
-  return sprintf("%07s", c.charCodeAt(0).toString(2))
+  return sprintf('%0' + CHAR_LENGTH + 's', c.charCodeAt(0).toString(2))
     .split("")
     .map(parseFloat)
 }
 
 var trainingSet = chars.map((c, i) => {
   var input = chars.slice(i, i + PHRASE_LENGTH)
-  var output = chars.slice(i + PHRASE_LENGTH, i + PHRASE_LENGTH * 2)
+  var output = _.flatten([chars[PHRASE_LENGTH + i]])
 
-  console.log(i + 1, "of", chars.length);
   return {
-    input: _.flatten(input.map(asNetIO)),
-    output: _.flatten(output.map(asNetIO))
+    input: _.flatten(_.compact(input).map(asNetIO)),
+    output: _.flatten(_.compact(output).map(asNetIO))
   }
-  //console.log(obj)
-  //console.log(input.length, obj.input.length, output.length, obj.output.length)
-  //return obj
 }).filter(obj => {
   return obj.output.length == NUM_OUTPUTS
 })
 
+//console.log(trainingSet.length)
 //console.log(JSON.stringify(trainingSet))
+//console.log("type of training set", trainingSet.chunks)
+//console.log(trainingSet.chunks(5))
+//console.log(chunks(trainingSet))
+//console.log(trainingSet[0].output)
+//console.log(chunks(trainingSet, 5).length)
 
-var net = new synaptic.Architect.LSTM(
-  NUM_INPUTS,
-  4,
-  NUM_OUTPUTS
-)
-
+var net = new synaptic.Architect.LSTM(NUM_INPUTS, 4, NUM_OUTPUTS)
 var trainer = new synaptic.Trainer(net)
 
-trainer.train(trainingSet, {
-  iterations: 100,
-  log: 10
+chunks(trainingSet, 5).forEach(chunk => {
+  var result = trainer.train(chunk, {
+    iterations: 100,
+    log: 1
+  })
+
+  console.log(result)
 })
-//trainingSet.map(io => {
-//  //var trainResult = trainer.train([io], {
-//  var result = trainer.train([io], {
-//    iterations: 5,
-//    log:
-//  })
-//
-//  console.log(result)
-//})
+
+// TODO: Activate
+net.activat
