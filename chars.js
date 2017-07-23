@@ -5,7 +5,8 @@ var synaptic = require("synaptic")
 var sprintf = require("sprintf")
 
 //var text = fs.readFileSync("./share/heart-of-darkness.txt").toString()
-var text = fs.readFileSync("./share/heart-of-darkness.short.txt").toString()
+var text = fs.readFileSync("./share/heart-of-darkness.medium.txt").toString()
+//var text = fs.readFileSync("./share/heart-of-darkness.short.txt").toString()
 var chars = text.split("")
 
 var chunks = (arr, chunkSize) => {
@@ -38,9 +39,31 @@ var toBits = c => {
     .map(parseFloat)
 }
 
+// Rounds array of floats returned by the network to a string of
+// corresponding characters
 var fromBits = bits => {
-  return String.fromCharCode(
-    parseInt(bits.map(b => { return "" + b }).join(""), 2))
+  bits = bits.slice()
+
+  var str = "", bin, b
+
+  while(bits.length) {
+    bin = ""
+
+    _(CHAR_LENGTH).times(() => {
+      b = bits.shift()
+
+      if(b > 1) b = 1
+      else if(b < 0) b = 0
+
+      b = Math.round(b)
+      bin += b
+    })
+    //console.log("BIN", bin)
+
+    str += String.fromCharCode(parseInt(bin, 2))
+  }
+
+  return str
 }
 
 var trainingSet = chars.map((c, i) => {
@@ -58,10 +81,10 @@ var trainingSet = chars.map((c, i) => {
 var net = new synaptic.Architect.LSTM(NUM_INPUTS, 4, NUM_OUTPUTS)
 var trainer = new synaptic.Trainer(net)
 
-var io_chunks = chunks(trainingSet, 5)
+var ioChunks = chunks(trainingSet, 5)
 
-io_chunks.forEach((chunk, i) => {
-  console.log(i + 1, "of", io_chunks.length)
+ioChunks.forEach((chunk, i) => {
+  console.log(i + 1, "of", ioChunks.length)
 
   var result = trainer.train(chunk, {
     iterations: 100,
@@ -69,21 +92,45 @@ io_chunks.forEach((chunk, i) => {
   })
 })
 
-tests = [
-  "The sea-reach of the Tham",
-  "an interminable waterway.",
-  "together without a joint,",
-  "of the barges drifting up",
-  "lusters of canvas sharply",
-  "haze rested on the low sh",
-  "The air was dark above Gr",
-  "condensed into a mournful",
-  "and the greatest, town on"
-].map(t => {
-  return _.flatten(t.split("").map(toBits))
-}).forEach(t => {
-  //console.log("T0", typeof t[0], t[0], JSON.stringify(t))
-  var result = net.activate(t)
+//tests = [
+//  "The sea-reach of the Tham",
+//  "an interminable waterway.",
+//  "together without a joint,",
+//  "of the barges drifting up",
+//  "lusters of canvas sharply",
+//  "haze rested on the low sh",
+//  "The air was dark above Gr",
+//  "condensed into a mournful",
+//  "and the greatest, town on"
+//].map(t => {
+//  return _.flatten(t.split("").map(toBits))
+//}).forEach(t => {
+//  //console.log("T0", typeof t[0], t[0], JSON.stringify(t))
+//  var result = fromBits(net.activate(t))
+//
+//  console.log(result)
+//})
 
-  console.log(result)
+const NUM_OUTPUT_CHARS = 3000
+
+var lastPhrase = (bits) => {
+  return bits.slice(-(PHRASE_LENGTH * CHAR_LENGTH))
+}
+
+var seedStr = "The sea-reach of the Tham"
+var bits = _.flatten(seedStr.split("").map(toBits))
+//console.log(bits, fromBits(bits), "LAST PHRASE", lastPhrase(bits))
+//console.log("LAST PHRASE", lastPhrase(bits))
+
+process.stdout.write(seedStr)
+
+_(NUM_OUTPUT_CHARS).times(n => {
+  var newBits = net.activate(lastPhrase(bits))
+  //console.log(fromBits(newBits))
+
+  bits = bits.concat(newBits)
+  process.stdout.write(fromBits(newBits))
 })
+console.log()
+
+process.exit()
