@@ -1,5 +1,5 @@
 const config = require("./config")
-const NUM_OUTPUT_CHARS = 100
+const NUM_OUTPUT_CHARS = 1000
 
 var fs = require("fs")
 var _ = require("underscore")
@@ -8,7 +8,7 @@ var synaptic = require("synaptic")
 var convert = require("./convert")
 
 var chars = fs
-  .readFileSync("./share/heart-of-darkness.short.txt")
+  .readFileSync("./share/heart-of-darkness.txt")
   .toString()
   .split("")
 
@@ -46,10 +46,23 @@ var trainingSet = chars.map((c, i) => {
   return obj.output.length == config.outputs
 })
 
-var net = new synaptic.Architect.LSTM(config.inputs, 4,5,6, config.outputs)
+var net = new synaptic.Architect.LSTM(config.inputs, 4,4,4,4,4,4,4,4,4, config.outputs)
 var trainer = new synaptic.Trainer(net)
 
-var seedStr = "The sea-reach of the Tham"
+var testStr = [
+  "The sea-reach of the Tham",
+  "an interminable waterway.",
+  "together without a joint,",
+  "of the barges drifting up",
+  "lusters of canvas sharply",
+  "haze rested on the low sh",
+  "The air was dark above Gr",
+  "condensed into a mournful",
+  "and the greatest, town on"
+];
+
+//var seedStr = "The sea-reach of the Tham"
+var seedStr = testStr[2];
 var bits = convert.toIO(seedStr)
 
 process.stdout.write(seedStr)
@@ -78,7 +91,7 @@ _(NUM_OUTPUT_CHARS).times(n => {
 
   newBits = net.activate(_(bits).last(config.inputs))
   //console.log(newBits.length, bits.length, convert.toString(newBits))
-  
+
   newText = convert.toString(newBits)
 
   bits = bits.concat(newBits)

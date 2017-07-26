@@ -3,8 +3,8 @@
   "charLength": 7,
 
   "_": "Number of input 'bits' (must be a multiple of charLength)",
-  "inputs": 35,
+  "inputs": 21,
 
   "_": "Number of output 'bits' (must be a multiple of charLength)",
-  "outputs": 140
+  "outputs": 21
 }
