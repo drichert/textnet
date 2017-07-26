@@ -10,7 +10,6 @@ var text = fs.readFileSync("./share/heart-of-darkness.medium.txt").toString()
 var chars = text.split("")
 
 var chunks = (arr, chunkSize) => {
-  //console.log("!!!", this)
   var _chunks = []
   var start = 0
   var end = start + chunkSize
@@ -26,11 +25,13 @@ var chunks = (arr, chunkSize) => {
 
 const CHAR_LENGTH = 7 // Character length in bits
 const WORD_LENGTH = 5 // Word length in characters
-const PHRASE_LENGTH = WORD_LENGTH * 5 // Number of characters for input filter
+//const PHRASE_LENGTH = WORD_LENGTH * 5 // Number of characters for input filter
+const PHRASE_LENGTH = 10
 
 // Network input/output length (number of bits, 7 per character)
 const NUM_INPUTS = PHRASE_LENGTH  * CHAR_LENGTH
-const NUM_OUTPUTS = CHAR_LENGTH // Save one character (7 bits) as output
+//const NUM_OUTPUTS = CHAR_LENGTH // Save one character (7 bits) as output
+const NUM_OUTPUTS = NUM_INPUTS
 
 // Convert input charater to an array of 7 bits (as floats)
 var toBits = c => {
@@ -58,7 +59,6 @@ var fromBits = bits => {
       b = Math.round(b)
       bin += b
     })
-    //console.log("BIN", bin)
 
     str += String.fromCharCode(parseInt(bin, 2))
   }
@@ -68,7 +68,8 @@ var fromBits = bits => {
 
 var trainingSet = chars.map((c, i) => {
   var input = chars.slice(i, i + PHRASE_LENGTH)
-  var output = _.flatten([chars[PHRASE_LENGTH + i]])
+  //var output = _.flatten([chars[PHRASE_LENGTH + i]])
+  var output = chars.slice(i + PHRASE_LENGTH, i + PHRASE_LENGTH * 2)
 
   return {
     input: _.flatten(_.compact(input).map(toBits)),
@@ -85,6 +86,7 @@ var ioChunks = chunks(trainingSet, 5)
 
 ioChunks.forEach((chunk, i) => {
   console.log(i + 1, "of", ioChunks.length)
+  console.log(fromBits(chunk[0].input), fromBits(chunk[0].output))
 
   var result = trainer.train(chunk, {
     iterations: 100,
