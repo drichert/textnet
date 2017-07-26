@@ -87,6 +87,7 @@ var ioChunks = chunks(trainingSet, 5)
 
 var newBits, newText
 _(NUM_OUTPUT_CHARS).times(n => {
+  net.clear()
   trainer.train(ioChunks[n], { iterations: 100 })
 
   newBits = net.activate(_(bits).last(config.inputs))
